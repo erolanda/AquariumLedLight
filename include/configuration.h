@@ -3,8 +3,8 @@
 
 //WiFi settings
 #ifndef WIFI_SSID
-  #define WIFI_SSID "pelas" // Put you SSID and Password here
-  #define WIFI_PWD "Qa13#Ty1977"
+  #define WIFI_SSID "ssid" // Put you SSID and Password here
+  #define WIFI_PWD "pass"
 #endif
 
 //LCD Address
