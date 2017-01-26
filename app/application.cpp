@@ -11,6 +11,7 @@ int8_t startFadeOut = 18; // start fade out at 18 hrs
 bool automatic = true;
 bool fan = false;
 int activeSockets = 0;
+DriverPWM fanPWM;
 
 //ntp
 NtpClient ntpClient ("mx.pool.ntp.org", 300, onNtpReceive);
@@ -49,8 +50,13 @@ void connectFail(){
 //Turn on/off fan
 void controlFan(bool state){
 	fan = state;
-	digitalWrite(FAN_1, state);
-	digitalWrite(FAN_2, state);
+	if(state == false){
+		fanPWM.analogWrite(FAN_1, 0);
+		fanPWM.analogWrite(FAN_2, 0);
+	}else{
+		fanPWM.analogWrite(FAN_1, 140);
+		fanPWM.analogWrite(FAN_2, 120);
+	}
 }
 
 //Set led's brightness
@@ -64,9 +70,13 @@ void controlLED(){
 	Serial.print(json);
 }
 
+void setMode(bool  mode){
+	automatic = mode;
+}
+
 void setCurrentBrightness(int brightness){
 	currentBrightness = brightness;
-	automatic = false;
+	setMode(false);
 	controlLED();
 	controlFan(true);
 }
@@ -154,6 +164,7 @@ void init(){
 	SystemClock.setTimeZone(-6);
 
 	//Configure pins
+	fanPWM.initialize();
 	pinMode(FAN_1, OUTPUT);
 	pinMode(FAN_2, OUTPUT);
 

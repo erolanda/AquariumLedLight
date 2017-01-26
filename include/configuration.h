@@ -23,4 +23,5 @@ void onNtpReceive(NtpClient& client, time_t timestamp);
 void wsSendData(String json);
 int getActiveSockets();
 void setCurrentBrightness(int brightness);
+void setMode(bool mode);
 #endif /* INCLUDE_CONFIGURATION_H_ */

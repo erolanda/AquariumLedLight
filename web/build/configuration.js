@@ -12,6 +12,17 @@ function downScripts() {
 			sendData(slideEvt.value);
 	  }
 	});
+
+	$('input[type=radio][name=optradio]').change(function() {
+			var json = {};
+	    if (this.value == 'on') {
+					json['fan'] = 1;
+	    } else if (this.value == 'off') {
+					json['fan'] = 2;
+	    }
+			websocket.send(JSON.stringify(json));
+			console.log(JSON.stringify(json));
+	});
 }
 
 function startWebSockets() {

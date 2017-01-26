@@ -51,6 +51,13 @@ void wsMessageReceived(WebSocket& socket, const String& message){
 			brightness = 0;
 		}
 		setCurrentBrightness(brightness);
+	}else if(root["fan"]){
+		int value = root["fan"];
+		setMode(false);
+		if(value == 1)
+			controlFan(true);
+		else
+			controlFan(false);
 	}
 }
 
