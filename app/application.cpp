@@ -1,9 +1,9 @@
 #include <user_config.h>
 #include <configuration.h>
-#include <Libraries/LiquidCrystal/LiquidCrystal_I2C.h>
 #include <Services/ArduinoJson/ArduinoJson.h>
+#include <Libraries/OneWire/OneWire.h>
+#include <Libraries/DS18S20/ds18s20.h>
 
-LiquidCrystal_I2C lcd(I2C_LCD_ADDR, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 Timer lcdTimer;
 int8_t currentBrightness = 0; // 0 - 59
 int8_t startFadeIn = 6; // Start fade in at 7 hrs
@@ -12,6 +12,7 @@ bool automatic = true;
 bool fan = false;
 int activeSockets = 0;
 DriverPWM fanPWM;
+DS18S20 ReadTemp;
 
 //ntp
 NtpClient ntpClient ("mx.pool.ntp.org", 300, onNtpReceive);
@@ -36,8 +37,6 @@ void connectOk(){
 	ntpClient.requestTime();
 	//start web server
 	startWebServer();
-	// initialize the lcd for 16 chars 2 lines, turn on backlight
-	lcd.begin(16, 2);
 }
 
 // Will be called when WiFi station timeout was reached
@@ -59,12 +58,36 @@ void controlFan(bool state){
 	}
 }
 
+float getTemperature(){
+	uint8_t a;
+	uint64_t info;
+	float temperature = 0;
+	if (!ReadTemp.MeasureStatus()){
+	  if (ReadTemp.GetSensorsCount()){   // is minimum 1 sensor detected ?
+	    for(a=0;a<ReadTemp.GetSensorsCount();a++){   // prints for all sensors
+	      if (ReadTemp.IsValidTemperature(a)){   // temperature read correctly ?
+					temperature = ReadTemp.GetCelsius(a);
+        }
+	    }
+		}
+		ReadTemp.StartMeasure();  // next measure, result after 1.2 seconds * number of sensors
+		return temperature;
+	}
+	else
+		return temperature;
+}
+
 //Set led's brightness
 void controlLED(){
-	StaticJsonBuffer<100> jsonBuffer;
+	DateTime _date_time = SystemClock.now();
+	float temperature = getTemperature();
+	StaticJsonBuffer<200> jsonBuffer;
 	JsonObject& root = jsonBuffer.createObject();
 	int value = ((255/59) * currentBrightness);
 	root["brightness"] = value;
+	root["date"] = _date_time.toShortDateString();
+	root["time"] = _date_time.toShortTimeString(false);
+	root["temperature"] = temperature;
 	String json;
 	root.printTo(json);
 	Serial.print(json);
@@ -78,7 +101,6 @@ void setCurrentBrightness(int brightness){
 	currentBrightness = brightness;
 	setMode(false);
 	controlLED();
-	controlFan(true);
 }
 
 //Update LCD
@@ -95,15 +117,10 @@ void onLCDPrint() {
 		root.printTo(json);
 		wsSendData(json);
 	}
-
-	//Print current date - hour to LCD
-	DateTime _date_time = SystemClock.now();
-	lcd.setCursor(0,0);
-	lcd.print(_date_time.toShortDateString() + " ");
-	lcd.print(_date_time.toShortTimeString(false));
-	//TODO get Temperature from probe
 	if(automatic)
 		onChangeLedBrightness();
+	else
+		controlLED();
 }
 
 //Check  hour and adjust brightness
@@ -167,6 +184,8 @@ void init(){
 	fanPWM.initialize();
 	pinMode(FAN_1, OUTPUT);
 	pinMode(FAN_2, OUTPUT);
+	ReadTemp.Init(2);
+	ReadTemp.StartMeasure();
 
 	// Run our method when station was connected to AP (or not connected)
 	WifiStation.waitConnection(connectOk, 30, connectFail);

@@ -8,7 +8,7 @@
 #endif
 
 //LCD Address
-#define I2C_LCD_ADDR 0x27
+// #define I2C_LCD_ADDR 0x27
 
 //Fan pin
 #define FAN_1 5
